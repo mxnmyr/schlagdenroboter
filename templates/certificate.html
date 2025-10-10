@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heißer Draht - Urkunde</title>
+    <style>
+        @page {
+            size: 4in 6in;
+            margin: 0;
+        }
+        
+        @media print {
+            html, body {
+                width: 4in;
+                height: 6in;
+                margin: 0;
+                padding: 0;
+                background: white !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .certificate-container {
+                width: 4in !important;
+                height: 6in !important;
+                max-width: 4in !important;
+                padding: 0.3in !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: white !important;
+            }
+            
+            .certificate-border {
+                border: 3px solid #000 !important;
+                padding: 0.15in !important;
+                height: 100%;
+                background: white !important;
+            }
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: linear-gradient(135deg, #b1cb21 0%, #7a9615 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .certificate-container {
+            background: white;
+            width: 4in;
+            height: 6in;
+            max-width: 4in;
+            padding: 0.3in;
+            border: 2px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .certificate-border {
+            border: 3px solid #000;
+            padding: 0.15in;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .certificate-header {
+            text-align: center;
+            margin-bottom: 0.1in;
+        }
+        
+        .certificate-icon {
+            font-size: 2em;
+            margin-bottom: 0.05in;
+        }
+        
+        .certificate-title {
+            font-size: 1.4em;
+            color: #000;
+            margin-bottom: 0.05in;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .certificate-subtitle {
+            font-size: 0.7em;
+            color: #333;
+            font-style: italic;
+        }
+        
+        .certificate-body {
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .certificate-text {
+            font-size: 0.65em;
+            color: #000;
+            margin-bottom: 0.08in;
+        }
+        
+        .player-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #000;
+            margin: 0.1in 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 0.08in 0;
+        }
+        
+        .achievement-text {
+            font-size: 0.6em;
+            color: #000;
+            margin: 0.08in 0;
+        }
+        
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 0.12in 0;
+            gap: 0.08in;
+        }
+        
+        .stat-box {
+            border: 2px solid #000;
+            padding: 0.08in;
+            flex: 1;
+            background: white;
+        }
+        
+        .stat-label {
+            font-size: 0.5em;
+            color: #000;
+            margin-bottom: 0.03in;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .certificate-footer {
+            padding-top: 0.08in;
+            border-top: 2px solid #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.5em;
+        }
+        
+        .signature-line {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .signature-line-border {
+            border-top: 1px solid #000;
+            margin-bottom: 0.03in;
+            width: 1.2in;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .signature-label {
+            font-size: 1em;
+            color: #000;
+        }
+        
+        .date {
+            font-size: 1em;
+            color: #000;
+        }
+        
+        .buttons {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            margin: 0 10px;
+            background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #7a9615 0%, #5a6f10 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="certificate-container">
+            <div class="certificate-border">
+                <div class="certificate-header">
+                    <div class="certificate-icon">🏆</div>
+                    <h1 class="certificate-title">Urkunde</h1>
+                    <p class="certificate-subtitle">Heißer Draht Challenge</p>
+                </div>
+                
+                <div class="certificate-body">
+                    <p class="certificate-text">Diese Urkunde wird verliehen an</p>
+                    
+                    <div class="player-name">{{ entry.name }}</div>
+                    
+                    <p class="achievement-text">
+                        für die erfolgreiche Teilnahme<br>am Heißer Draht Spiel
+                    </p>
+                    
+                    <div class="stats-container">
+                        <div class="stat-box">
+                            <div class="stat-label">ZEIT</div>
+                            <div class="stat-value">{{ "%.2f"|format(entry.time) }}s</div>
+                        </div>
+                        
+                        <div class="stat-box">
+                            <div class="stat-label">FEHLER</div>
+                            <div class="stat-value">{{ entry.errors }}</div>
+                        </div>
+                        
+                        <div class="stat-box">
+                            <div class="stat-label">LEVEL</div>
+                            <div class="stat-value">{{ entry.difficulty }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="certificate-footer">
+                    <div class="date">
+                        Datum: {{ current_date }}
+                    </div>
+                    
+                    <div class="signature-line">
+                        <div class="signature-line-border"></div>
+                        <div class="signature-label">Stempel</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="buttons no-print">
+            <button onclick="window.print()" class="btn">🖨️ Drucken</button>
+            <a href="/select_certificate" class="btn btn-secondary">🔙 Zurück</a>
+        </div>
+    </div>
+</body>
+</html>

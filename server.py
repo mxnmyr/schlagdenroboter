@@ -1,0 +1,478 @@
+
+
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+import os
+import json
+from datetime import datetime
+
+app = Flask(__name__)
+
+# Datenbank-Dateien
+NFC_MAPPING_FILE = "nfc_mapping.json"
+GAME_DATA_FILE = "game_data.json"
+ARCHIVE_FILE = "game_archive.json"
+
+# NFC-Mapping: {nfc_id: player_name}
+nfc_mapping = {}
+
+# Spieldaten: {nfc_id: {heisser_draht: [], vier_gewinnt: [], puzzle: []}}
+game_data = {}
+
+# Archivierte Spieldaten: [{name, heisser_draht: [], vier_gewinnt: [], puzzle: [], archived_date}]
+game_archive = []
+
+# Laden der gespeicherten Daten
+def load_data():
+    global nfc_mapping, game_data, game_archive
+    
+    if os.path.exists(NFC_MAPPING_FILE):
+        with open(NFC_MAPPING_FILE, "r", encoding="utf-8") as file:
+            nfc_mapping = json.load(file)
+    else:
+        nfc_mapping = {}
+    
+    if os.path.exists(GAME_DATA_FILE):
+        with open(GAME_DATA_FILE, "r", encoding="utf-8") as file:
+            game_data = json.load(file)
+    else:
+        game_data = {}
+    
+    if os.path.exists(ARCHIVE_FILE):
+        with open(ARCHIVE_FILE, "r", encoding="utf-8") as file:
+            game_archive = json.load(file)
+    else:
+        game_archive = []
+
+# Speichern der Daten
+def save_nfc_mapping():
+    with open(NFC_MAPPING_FILE, "w", encoding="utf-8") as file:
+        json.dump(nfc_mapping, file, indent=4, ensure_ascii=False)
+
+def save_game_data():
+    with open(GAME_DATA_FILE, "w", encoding="utf-8") as file:
+        json.dump(game_data, file, indent=4, ensure_ascii=False)
+
+def save_archive():
+    with open(ARCHIVE_FILE, "w", encoding="utf-8") as file:
+        json.dump(game_archive, file, indent=4, ensure_ascii=False)
+
+# Initialisierung
+load_data()
+
+# Hilfsfunktion: NFC-ID zu Name
+def get_player_name(nfc_id):
+    return nfc_mapping.get(nfc_id, f"NFC-{nfc_id}")
+
+# Hilfsfunktion: Spieldaten für NFC-ID initialisieren
+def init_player_data(nfc_id):
+    if nfc_id not in game_data:
+        game_data[nfc_id] = {
+            "heisser_draht": [],
+            "vier_gewinnt": [],
+            "puzzle": []
+        }
+
+# Hilfsfunktion: Prüfen ob Spieler alle Spiele abgeschlossen hat
+def has_completed_all_games(nfc_id):
+    if nfc_id not in game_data:
+        return False
+    data = game_data[nfc_id]
+    return (len(data.get("heisser_draht", [])) > 0 and 
+            len(data.get("vier_gewinnt", [])) > 0 and 
+            len(data.get("puzzle", [])) > 0)
+
+# Hauptseite - Gesamt-Leaderboard mit Top 5 aller Spiele
+@app.route('/')
+def home():
+    # Top 5 für jedes Spiel
+    heisser_draht_top5 = get_top5_heisser_draht()
+    vier_gewinnt_top5 = get_top5_vier_gewinnt()
+    puzzle_top5 = get_top5_puzzle()
+    
+    return render_template('home.html', 
+                          heisser_draht=heisser_draht_top5,
+                          vier_gewinnt=vier_gewinnt_top5,
+                          puzzle=puzzle_top5)
+
+# Leaderboard für Heißer Draht
+@app.route('/leaderboard/heisser_draht')
+def leaderboard_heisser_draht():
+    top5 = get_top5_heisser_draht()
+    bottom5 = get_bottom5_heisser_draht()
+    return render_template('leaderboard_heisser_draht.html', top5=top5, bottom5=bottom5)
+
+# Leaderboard für Vier Gewinnt
+@app.route('/leaderboard/vier_gewinnt')
+def leaderboard_vier_gewinnt():
+    top5 = get_top5_vier_gewinnt()
+    bottom5 = get_bottom5_vier_gewinnt()
+    return render_template('leaderboard_vier_gewinnt.html', top5=top5, bottom5=bottom5)
+
+# Leaderboard für Puzzle
+@app.route('/leaderboard/puzzle')
+def leaderboard_puzzle():
+    top5 = get_top5_puzzle()
+    bottom5 = get_bottom5_puzzle()
+    return render_template('leaderboard_puzzle.html', top5=top5, bottom5=bottom5)
+
+# Hilfsfunktionen für Top 5 / Bottom 5
+def get_top5_heisser_draht():
+    all_entries = []
+    # Aktive Spieldaten
+    for nfc_id, data in game_data.items():
+        for entry in data.get("heisser_draht", []):
+            all_entries.append({
+                "name": entry.get("name", get_player_name(nfc_id)),
+                "nfc_id": nfc_id,
+                "time": entry["time"],
+                "errors": entry["errors"],
+                "difficulty": entry["difficulty"],
+                "timestamp": entry["timestamp"]
+            })
+    # Archivierte Spieldaten
+    for archive_entry in game_archive:
+        for entry in archive_entry.get("heisser_draht", []):
+            all_entries.append({
+                "name": entry.get("name", archive_entry.get("name", "Unbekannt")),
+                "nfc_id": "archived",
+                "time": entry["time"],
+                "errors": entry["errors"],
+                "difficulty": entry["difficulty"],
+                "timestamp": entry["timestamp"]
+            })
+    all_entries.sort(key=lambda x: x["time"])
+    return all_entries[:5]
+
+def get_bottom5_heisser_draht():
+    all_entries = []
+    # Aktive Spieldaten
+    for nfc_id, data in game_data.items():
+        for entry in data.get("heisser_draht", []):
+            all_entries.append({
+                "name": entry.get("name", get_player_name(nfc_id)),
+                "nfc_id": nfc_id,
+                "time": entry["time"],
+                "errors": entry["errors"],
+                "difficulty": entry["difficulty"],
+                "timestamp": entry["timestamp"]
+            })
+    # Archivierte Spieldaten
+    for archive_entry in game_archive:
+        for entry in archive_entry.get("heisser_draht", []):
+            all_entries.append({
+                "name": entry.get("name", archive_entry.get("name", "Unbekannt")),
+                "nfc_id": "archived",
+                "time": entry["time"],
+                "errors": entry["errors"],
+                "difficulty": entry["difficulty"],
+                "timestamp": entry["timestamp"]
+            })
+    all_entries.sort(key=lambda x: x["time"], reverse=True)
+    return all_entries[:5]
+
+def get_top5_vier_gewinnt():
+    all_entries = []
+    # Aktive Spieldaten
+    for nfc_id, data in game_data.items():
+        vier_gewinnt_games = data.get("vier_gewinnt", [])
+        if len(vier_gewinnt_games) > 0:
+            # Nimm den Namen vom letzten Spiel (neuester Name)
+            last_name = vier_gewinnt_games[-1].get("name", get_player_name(nfc_id))
+            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
+            total = len(vier_gewinnt_games)
+            all_entries.append({
+                "name": last_name,
+                "nfc_id": nfc_id,
+                "wins": wins,
+                "total": total,
+                "win_rate": wins / total * 100,
+                "games": vier_gewinnt_games
+            })
+    # Archivierte Spieldaten
+    for archive_entry in game_archive:
+        vier_gewinnt_games = archive_entry.get("vier_gewinnt", [])
+        if len(vier_gewinnt_games) > 0:
+            last_name = vier_gewinnt_games[-1].get("name", archive_entry.get("name", "Unbekannt"))
+            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
+            total = len(vier_gewinnt_games)
+            all_entries.append({
+                "name": last_name,
+                "nfc_id": "archived",
+                "wins": wins,
+                "total": total,
+                "win_rate": wins / total * 100,
+                "games": vier_gewinnt_games
+            })
+    all_entries.sort(key=lambda x: (x["win_rate"], x["wins"]), reverse=True)
+    return all_entries[:5]
+
+def get_bottom5_vier_gewinnt():
+    all_entries = []
+    # Aktive Spieldaten
+    for nfc_id, data in game_data.items():
+        vier_gewinnt_games = data.get("vier_gewinnt", [])
+        if len(vier_gewinnt_games) > 0:
+            # Nimm den Namen vom letzten Spiel (neuester Name)
+            last_name = vier_gewinnt_games[-1].get("name", get_player_name(nfc_id))
+            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
+            total = len(vier_gewinnt_games)
+            all_entries.append({
+                "name": last_name,
+                "nfc_id": nfc_id,
+                "wins": wins,
+                "total": total,
+                "win_rate": wins / total * 100,
+                "games": vier_gewinnt_games
+            })
+    # Archivierte Spieldaten
+    for archive_entry in game_archive:
+        vier_gewinnt_games = archive_entry.get("vier_gewinnt", [])
+        if len(vier_gewinnt_games) > 0:
+            last_name = vier_gewinnt_games[-1].get("name", archive_entry.get("name", "Unbekannt"))
+            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
+            total = len(vier_gewinnt_games)
+            all_entries.append({
+                "name": last_name,
+                "nfc_id": "archived",
+                "wins": wins,
+                "total": total,
+                "win_rate": wins / total * 100,
+                "games": vier_gewinnt_games
+            })
+    all_entries.sort(key=lambda x: (x["win_rate"], x["wins"]))
+    return all_entries[:5]
+
+def get_top5_puzzle():
+    all_entries = []
+    # Aktive Spieldaten
+    for nfc_id, data in game_data.items():
+        for entry in data.get("puzzle", []):
+            all_entries.append({
+                "name": entry.get("name", get_player_name(nfc_id)),
+                "nfc_id": nfc_id,
+                "time": entry["time"],
+                "difficulty": entry.get("difficulty", "unknown"),
+                "timestamp": entry["timestamp"]
+            })
+    # Archivierte Spieldaten
+    for archive_entry in game_archive:
+        for entry in archive_entry.get("puzzle", []):
+            all_entries.append({
+                "name": entry.get("name", archive_entry.get("name", "Unbekannt")),
+                "nfc_id": "archived",
+                "time": entry["time"],
+                "difficulty": entry.get("difficulty", "unknown"),
+                "timestamp": entry["timestamp"]
+            })
+    all_entries.sort(key=lambda x: x["time"])
+    return all_entries[:5]
+
+def get_bottom5_puzzle():
+    all_entries = []
+    # Aktive Spieldaten
+    for nfc_id, data in game_data.items():
+        for entry in data.get("puzzle", []):
+            all_entries.append({
+                "name": entry.get("name", get_player_name(nfc_id)),
+                "nfc_id": nfc_id,
+                "time": entry["time"],
+                "difficulty": entry.get("difficulty", "unknown"),
+                "timestamp": entry["timestamp"]
+            })
+    # Archivierte Spieldaten
+    for archive_entry in game_archive:
+        for entry in archive_entry.get("puzzle", []):
+            all_entries.append({
+                "name": entry.get("name", archive_entry.get("name", "Unbekannt")),
+                "nfc_id": "archived",
+                "time": entry["time"],
+                "difficulty": entry.get("difficulty", "unknown"),
+                "timestamp": entry["timestamp"]
+            })
+    all_entries.sort(key=lambda x: x["time"], reverse=True)
+    return all_entries[:5]
+
+# API-Endpunkt: Heißer Draht Daten empfangen
+@app.route('/api/heisser_draht', methods=['POST'])
+def receive_heisser_draht():
+    data = request.json
+    print("Heißer Draht Daten empfangen:", data)
+    
+    if not data or 'nfc_id' not in data or 'time' not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    
+    nfc_id = str(data['nfc_id'])
+    init_player_data(nfc_id)
+    
+    entry = {
+        "name": get_player_name(nfc_id),  # Name direkt speichern
+        "time": data['time'],
+        "errors": data.get('errors', 0),
+        "difficulty": data.get('difficulty', 'unknown'),
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    game_data[nfc_id]["heisser_draht"].append(entry)
+    save_game_data()
+    
+    return jsonify({"status": "success", "player_name": get_player_name(nfc_id)})
+
+# API-Endpunkt: Vier Gewinnt Daten empfangen
+@app.route('/api/vier_gewinnt', methods=['POST'])
+def receive_vier_gewinnt():
+    data = request.json
+    print("Vier Gewinnt Daten empfangen:", data)
+    
+    if not data or 'nfc_id' not in data or 'result' not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    
+    nfc_id = str(data['nfc_id'])
+    init_player_data(nfc_id)
+    
+    entry = {
+        "name": get_player_name(nfc_id),  # Name direkt speichern
+        "result": data['result'],  # "won" oder "lost"
+        "difficulty": data.get('difficulty', 'unknown'),
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    game_data[nfc_id]["vier_gewinnt"].append(entry)
+    save_game_data()
+    
+    return jsonify({"status": "success", "player_name": get_player_name(nfc_id)})
+
+# API-Endpunkt: Puzzle Daten empfangen
+@app.route('/api/puzzle', methods=['POST'])
+def receive_puzzle():
+    data = request.json
+    print("Puzzle Daten empfangen:", data)
+    
+    if not data or 'nfc_id' not in data or 'time' not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    
+    nfc_id = str(data['nfc_id'])
+    init_player_data(nfc_id)
+    
+    entry = {
+        "name": get_player_name(nfc_id),  # Name direkt speichern
+        "time": data['time'],
+        "difficulty": data.get('difficulty', 'unknown'),
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    game_data[nfc_id]["puzzle"].append(entry)
+    save_game_data()
+    
+    return jsonify({"status": "success", "player_name": get_player_name(nfc_id)})
+
+# Verwaltungsseite
+@app.route('/admin')
+def admin():
+    # Liste aller NFC-IDs mit Status
+    nfc_list = []
+    for nfc_id in set(list(nfc_mapping.keys()) + list(game_data.keys())):
+        nfc_list.append({
+            "nfc_id": nfc_id,
+            "name": nfc_mapping.get(nfc_id, ""),
+            "has_name": nfc_id in nfc_mapping,
+            "completed_all": has_completed_all_games(nfc_id),
+            "games_played": {
+                "heisser_draht": len(game_data.get(nfc_id, {}).get("heisser_draht", [])),
+                "vier_gewinnt": len(game_data.get(nfc_id, {}).get("vier_gewinnt", [])),
+                "puzzle": len(game_data.get(nfc_id, {}).get("puzzle", []))
+            }
+        })
+    nfc_list.sort(key=lambda x: x["nfc_id"])
+    
+    return render_template('admin.html', nfc_list=nfc_list)
+
+# NFC-Namen zuweisen/ändern
+@app.route('/admin/assign_name', methods=['POST'])
+def assign_name():
+    nfc_id = str(request.form.get('nfc_id'))
+    name = request.form.get('name', '').strip()
+    
+    if not nfc_id or not name:
+        return redirect(url_for('admin'))
+    
+    # Wenn NFC-ID bereits einen Namen hat und Spiele gespielt wurden
+    if nfc_id in nfc_mapping and nfc_id in game_data:
+        has_games = (len(game_data[nfc_id].get("heisser_draht", [])) > 0 or 
+                    len(game_data[nfc_id].get("vier_gewinnt", [])) > 0 or 
+                    len(game_data[nfc_id].get("puzzle", [])) > 0)
+        
+        if has_games:
+            # Chip-Neuzuweisung: Archiviere alte Daten, dann Chip zurücksetzen
+            old_name = nfc_mapping[nfc_id]
+            archive_entry = {
+                "name": old_name,
+                "heisser_draht": game_data[nfc_id].get("heisser_draht", []),
+                "vier_gewinnt": game_data[nfc_id].get("vier_gewinnt", []),
+                "puzzle": game_data[nfc_id].get("puzzle", []),
+                "archived_date": datetime.now().isoformat(),
+                "original_nfc_id": nfc_id
+            }
+            game_archive.append(archive_entry)
+            save_archive()
+            
+            # Neuen Namen zuweisen und Chip zurücksetzen
+            nfc_mapping[nfc_id] = name
+            game_data[nfc_id] = {
+                "heisser_draht": [],
+                "vier_gewinnt": [],
+                "puzzle": []
+            }
+        else:
+            # Nur Namensänderung ohne Spiele
+            nfc_mapping[nfc_id] = name
+            init_player_data(nfc_id)
+    else:
+        # Erstmalige Zuweisung
+        nfc_mapping[nfc_id] = name
+        init_player_data(nfc_id)
+    
+    save_nfc_mapping()
+    save_game_data()
+    
+    return redirect(url_for('admin'))
+
+# Neuen NFC-Chip manuell hinzufügen
+@app.route('/admin/add_nfc', methods=['POST'])
+def add_nfc():
+    nfc_id = str(request.form.get('nfc_id', '')).strip()
+    name = request.form.get('name', '').strip()
+    
+    if not nfc_id:
+        return redirect(url_for('admin'))
+    
+    # NFC-ID initialisieren
+    init_player_data(nfc_id)
+    
+    # Wenn Name angegeben, direkt zuweisen
+    if name:
+        nfc_mapping[nfc_id] = name
+        save_nfc_mapping()
+    
+    save_game_data()
+    
+    return redirect(url_for('admin'))
+
+# Urkunde generieren (für Spieler die alle Spiele abgeschlossen haben)
+@app.route('/admin/certificate/<nfc_id>')
+def generate_certificate_admin(nfc_id):
+    if not has_completed_all_games(nfc_id):
+        return "Spieler hat noch nicht alle Spiele abgeschlossen", 400
+    
+    player_data = {
+        "name": get_player_name(nfc_id),
+        "nfc_id": nfc_id,
+        "heisser_draht": game_data[nfc_id]["heisser_draht"][-1] if game_data[nfc_id]["heisser_draht"] else None,
+        "vier_gewinnt": game_data[nfc_id]["vier_gewinnt"][-1] if game_data[nfc_id]["vier_gewinnt"] else None,
+        "puzzle": game_data[nfc_id]["puzzle"][-1] if game_data[nfc_id]["puzzle"] else None,
+        "date": datetime.now().strftime('%d.%m.%Y')
+    }
+    
+    return render_template('certificate_multi.html', player=player_data)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Heißer Draht - Leaderboard</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #b1cb21 0%, #7a9615 100%);
+			min-height: 100vh;
+			padding: 20px;
+			color: #333;
+		}
+		
+		.header {
+			text-align: center;
+			margin-bottom: 30px;
+			padding-top: 60px;
+		}
+		
+		.logo {
+			position: absolute;
+			top: 15px;
+			right: 15px;
+			width: 150px;
+			height: auto;
+			background: rgba(255, 255, 255, 0.9);
+			padding: 10px;
+			border-radius: 10px;
+		}
+			
+		.luh {
+			position: absolute;
+			top: 15px;
+			left: 15px;
+			width: 180px;
+			height: auto;
+			background: rgba(255, 255, 255, 0.9);
+			padding: 10px;
+			border-radius: 10px;
+		}
+		
+		h1 {
+			color: white;
+			font-size: 2.8em;
+			text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+			margin-bottom: 10px;
+		}
+		
+		.subtitle {
+			color: rgba(255, 255, 255, 0.9);
+			font-size: 1.2em;
+			margin-bottom: 20px;
+		}
+		
+		.leaderboard-container {
+			max-width: 900px;
+			margin: 0 auto;
+			background: white;
+			border-radius: 20px;
+			padding: 30px;
+			box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+		}
+		
+		.leaderboard-list {
+			list-style: none;
+			counter-reset: rank;
+		}
+		
+		.leaderboard-item {
+			display: flex;
+			align-items: center;
+			padding: 20px;
+			margin-bottom: 15px;
+			background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+			border-radius: 15px;
+			position: relative;
+			overflow: hidden;
+		}
+		
+		.leaderboard-item:nth-child(1) {
+			background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+			color: #1a1a1a;
+		}
+		
+		.leaderboard-item:nth-child(2) {
+			background: linear-gradient(135deg, #e0e0e0 0%, #c0c0c0 100%);
+		}
+		
+		.leaderboard-item:nth-child(3) {
+			background: linear-gradient(135deg, #cd7f32 0%, #b8732d 100%);
+			color: #1a1a1a;
+		}
+		
+		.rank-number {
+			counter-increment: rank;
+			font-size: 2.5em;
+			font-weight: bold;
+			color: rgba(0, 0, 0, 0.6);
+			width: 70px;
+			text-align: center;
+		}
+		
+		.rank-number::before {
+			content: counter(rank);
+		}
+		
+		.player-info {
+			flex: 1;
+			margin-left: 20px;
+		}
+		
+		.player-name {
+			font-size: 1.5em;
+			font-weight: bold;
+			color: #333;
+			margin-bottom: 5px;
+		}
+		
+		.player-stats {
+			display: flex;
+			gap: 20px;
+			flex-wrap: wrap;
+		}
+		
+		.stat {
+			display: inline-flex;
+			align-items: center;
+			background: rgba(255, 255, 255, 0.7);
+			padding: 5px 12px;
+			border-radius: 20px;
+			font-size: 0.9em;
+		}
+		
+		.stat-label {
+			font-weight: 600;
+			margin-right: 5px;
+			color: #555;
+		}
+		
+		.stat-value {
+			color: #333;
+		}
+		
+		.buttons {
+			text-align: center;
+			margin-top: 30px;
+			display: flex;
+			gap: 20px;
+			justify-content: center;
+			flex-wrap: wrap;
+		}
+		
+		.btn {
+			display: inline-block;
+			padding: 15px 35px;
+			background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%);
+			color: white;
+			text-decoration: none;
+			border-radius: 30px;
+			font-size: 1.1em;
+			font-weight: 600;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			transition: transform 0.2s;
+		}
+		
+		.btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+		}
+		
+		.btn-secondary {
+			background: linear-gradient(135deg, #7a9615 0%, #5a6f10 100%);
+			color: white;
+		}
+		
+		.empty-state {
+			text-align: center;
+			padding: 60px 20px;
+			color: #999;
+		}
+		
+		.empty-state-icon {
+			font-size: 4em;
+			margin-bottom: 20px;
+		}
+		
+		@media (max-width: 768px) {
+			h1 {
+				font-size: 2em;
+			}
+			
+			.logo, .luh {
+				width: 120px;
+			}
+			
+			.rank-number {
+				font-size: 1.8em;
+				width: 50px;
+			}
+			
+			.player-name {
+				font-size: 1.2em;
+			}
+			
+			.leaderboard-item {
+				padding: 15px;
+			}
+		}
+	</style>
+	<script>
+		// Automatische Überprüfung auf neue Daten alle 1 Sekunde
+		setInterval(function() {
+			fetch('/check_new_data', {
+				method: 'GET',
+				cache: 'no-cache'
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.new_data) {
+					// Neue Daten empfangen - zur Namenseingabe weiterleiten
+					window.location.href = '/add';
+				}
+			})
+			.catch(error => {
+				console.log('Überprüfung läuft:', error);
+			});
+		}, 1000);
+	</script>
+</head>
+<body>
+	<img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+	<img src="{{ url_for('static', filename='luh_logo.png') }}" alt="LUH Logo" class="luh">
+	
+	<div class="header">
+		<h1>🔥 Heißer Draht</h1>
+		<div class="subtitle">Sitzungs-Leaderboard</div>
+	</div>
+	
+	<div class="leaderboard-container">
+		{% if leaderboard %}
+			<ol class="leaderboard-list">
+			{% for entry in leaderboard %}
+				<li class="leaderboard-item">
+					<div class="rank-number"></div>
+					<div class="player-info">
+						<div class="player-name">{{ entry.name }}</div>
+						<div class="player-stats">
+							<span class="stat">
+								<span class="stat-label">⏱️ Zeit:</span>
+								<span class="stat-value">{{ "%.2f"|format(entry.time) }}s</span>
+							</span>
+							<span class="stat">
+								<span class="stat-label">❌ Fehler:</span>
+								<span class="stat-value">{{ entry.errors }}</span>
+							</span>
+							<span class="stat">
+								<span class="stat-label">🎯 Level:</span>
+								<span class="stat-value">{{ entry.difficulty }}</span>
+							</span>
+						</div>
+					</div>
+				</li>
+			{% endfor %}
+			</ol>
+		{% else %}
+			<div class="empty-state">
+				<div class="empty-state-icon">🏆</div>
+				<h2>Noch keine Einträge</h2>
+				<p>Sei der Erste im Leaderboard!</p>
+			</div>
+		{% endif %}
+		
+		<div class="buttons">
+			<a href="/all_time" class="btn">📊 All-Time Leaderboard</a>
+			<a href="/select_certificate" class="btn btn-secondary">🏅 Urkunde drucken</a>
+		</div>
+	</div>
+</body>
+</html>

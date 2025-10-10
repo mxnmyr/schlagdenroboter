@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heißer Draht - Urkunde auswählen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #b1cb21 0%, #7a9615 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 60px;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 150px;
+            height: auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 10px;
+        }
+            
+        .luh {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 180px;
+            height: auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        h1 {
+            color: white;
+            font-size: 2.8em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2em;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .player-list {
+            list-style: none;
+        }
+        
+        .player-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+            border-radius: 15px;
+            transition: transform 0.2s;
+        }
+        
+        .player-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .player-item:nth-child(1) {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #1a1a1a;
+        }
+        
+        .player-item:nth-child(2) {
+            background: linear-gradient(135deg, #e0e0e0 0%, #c0c0c0 100%);
+        }
+        
+        .player-item:nth-child(3) {
+            background: linear-gradient(135deg, #cd7f32 0%, #b8732d 100%);
+            color: #1a1a1a;
+        }
+        
+        .player-info-container {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .player-stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .stat-label {
+            font-weight: 600;
+            margin-right: 5px;
+            color: #555;
+        }
+        
+        .stat-value {
+            color: #333;
+        }
+        
+        .certificate-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+        
+        .certificate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .back-button {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .logo, .luh {
+                width: 100px;
+                padding: 5px;
+            }
+            
+            .player-item {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .certificate-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .player-name {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+    <img src="{{ url_for('static', filename='luh_logo.png') }}" alt="LUH Logo" class="luh">
+    
+    <div class="header">
+        <h1>🏅 Urkunde auswählen</h1>
+        <p class="subtitle">Wähle einen Spieler aus</p>
+    </div>
+    
+    <div class="container">
+        {% if leaderboard %}
+            <ol class="player-list">
+                {% for entry in leaderboard %}
+                <li class="player-item">
+                    <div class="player-info-container">
+                        <div class="player-name">{{ entry.name }}</div>
+                        <div class="player-stats">
+                            <span class="stat">
+                                <span class="stat-label">⏱️ Zeit:</span>
+                                <span class="stat-value">{{ "%.2f"|format(entry.time) }}s</span>
+                            </span>
+                            <span class="stat">
+                                <span class="stat-label">❌ Fehler:</span>
+                                <span class="stat-value">{{ entry.errors }}</span>
+                            </span>
+                            <span class="stat">
+                                <span class="stat-label">🎯 Level:</span>
+                                <span class="stat-value">{{ entry.difficulty }}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('generate_certificate', index=loop.index0) }}" class="certificate-btn">
+                        🖨️ Urkunde drucken
+                    </a>
+                </li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📜</div>
+                <h2>Keine Spieler verfügbar</h2>
+                <p>Es sind noch keine Spieler im Leaderboard</p>
+            </div>
+        {% endif %}
+        
+        <div class="back-button">
+            <a href="/" class="btn">🔙 Zurück zum Leaderboard</a>
+        </div>
+    </div>
+</body>
+</html>

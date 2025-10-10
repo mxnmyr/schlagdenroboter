@@ -1,0 +1,62 @@
+[
+    {
+        "time": 120,
+        "errors": 0,
+        "difficulty": "medium",
+        "name": "htfghn"
+    },
+    {
+        "time": 15.75,
+        "errors": 3,
+        "difficulty": "Mittel",
+        "name": "Max"
+    },
+    {
+        "time": 10.75,
+        "errors": 1,
+        "difficulty": "Schwer",
+        "name": "Max2"
+    },
+    {
+        "time": 25.5,
+        "errors": 4,
+        "difficulty": "Leicht",
+        "name": "Max3"
+    },
+    {
+        "time": 25.5,
+        "errors": 4,
+        "difficulty": "Leicht",
+        "name": "Test2"
+    },
+    {
+        "time": 25.5,
+        "errors": 4,
+        "difficulty": "Leicht",
+        "name": "Reasf\u00f6iu"
+    },
+    {
+        "time": 10.21,
+        "errors": 0,
+        "difficulty": "Profi",
+        "name": "Lennard stinkt"
+    },
+    {
+        "time": 45.21,
+        "errors": 2,
+        "difficulty": "Profi",
+        "name": "Max"
+    },
+    {
+        "time": 45.21,
+        "errors": 2,
+        "difficulty": "Profi",
+        "name": "jks"
+    },
+    {
+        "time": 45.21,
+        "errors": 2,
+        "difficulty": "Profi",
+        "name": "Max"
+    }
+]

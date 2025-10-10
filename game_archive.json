@@ -1,0 +1,60 @@
+[
+    {
+        "name": "Max",
+        "heisser_draht": [
+            {
+                "name": "Max",
+                "time": 12.5,
+                "errors": 2,
+                "difficulty": "Mittel",
+                "timestamp": "2025-10-10T10:06:59.419026"
+            }
+        ],
+        "vier_gewinnt": [
+            {
+                "name": "Max",
+                "result": "won",
+                "difficulty": "Schwer",
+                "timestamp": "2025-10-10T10:06:59.432864"
+            }
+        ],
+        "puzzle": [
+            {
+                "name": "Max",
+                "time": 38.75,
+                "timestamp": "2025-10-10T10:06:59.436260"
+            }
+        ],
+        "archived_date": "2025-10-10T10:06:59.441666",
+        "original_nfc_id": "TEST001"
+    },
+    {
+        "name": "Anna",
+        "heisser_draht": [
+            {
+                "name": "Anna",
+                "time": 15.2,
+                "errors": 3,
+                "difficulty": "Leicht",
+                "timestamp": "2025-10-10T10:06:59.495824"
+            }
+        ],
+        "vier_gewinnt": [
+            {
+                "name": "Anna",
+                "result": "won",
+                "difficulty": "Schwer",
+                "timestamp": "2025-10-10T10:10:24.184910"
+            }
+        ],
+        "puzzle": [
+            {
+                "name": "Anna",
+                "time": 38.75,
+                "timestamp": "2025-10-10T10:10:50.516434"
+            }
+        ],
+        "archived_date": "2025-10-10T10:11:41.829917",
+        "original_nfc_id": "TEST001"
+    }
+]

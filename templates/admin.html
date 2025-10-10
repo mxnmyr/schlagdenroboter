@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Verwaltung - Game Station</title>
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #b1cb21 0%, #7a9615 100%);
+			min-height: 100vh;
+			padding: 20px;
+			color: #333;
+		}
+		.header { text-align: center; margin-bottom: 30px; padding-top: 20px; }
+		h1 { color: white; font-size: 2.8em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 10px; }
+		.subtitle { color: rgba(255, 255, 255, 0.9); font-size: 1.2em; }
+		.container { max-width: 1200px; margin: 0 auto; }
+		.admin-section { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+		.section-title { font-size: 1.8em; color: #333; margin-bottom: 20px; border-bottom: 3px solid #b1cb21; padding-bottom: 10px; }
+		
+		table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+		th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+		th { background-color: #b1cb21; color: white; font-weight: 600; }
+		tr:hover { background-color: #f5f5f5; }
+		
+		.status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
+		.status-complete { background: #4caf50; color: white; }
+		.status-incomplete { background: #ff9800; color: white; }
+		.status-unnamed { background: #f44336; color: white; }
+		
+		.game-stats { font-size: 0.9em; color: #666; }
+		.game-stats span { margin-right: 15px; }
+		
+		.btn { display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%); color: white; text-decoration: none; border-radius: 20px; font-size: 0.9em; font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: transform 0.2s; border: none; cursor: pointer; margin: 2px; }
+		.btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+		.btn-small { padding: 8px 15px; font-size: 0.85em; }
+		.btn-danger { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); }
+		.btn-back { background: linear-gradient(135deg, #7a9615 0%, #5a6f10 100%); padding: 15px 35px; font-size: 1.1em; }
+		
+		.form-inline { display: flex; gap: 10px; align-items: center; }
+		.form-inline input { padding: 8px 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 0.9em; }
+		.form-inline input:focus { outline: none; border-color: #b1cb21; }
+		
+		.buttons { text-align: center; margin-top: 30px; }
+		
+		@media (max-width: 768px) {
+			table { font-size: 0.85em; }
+			.form-inline { flex-direction: column; align-items: stretch; }
+		}
+	</style>
+</head>
+<body>
+	<div class="header">
+		<h1>⚙️ Verwaltung</h1>
+		<div class="subtitle">NFC-Chip Verwaltung & Urkunden</div>
+	</div>
+	
+	<div class="container">
+		<div class="admin-section">
+			<h2 class="section-title">➕ Neuen NFC-Chip hinzufügen</h2>
+			<form method="POST" action="/admin/add_nfc" style="display: flex; gap: 15px; align-items: center; justify-content: center;">
+				<input type="text" name="nfc_id" placeholder="NFC-ID eingeben" required style="padding: 12px 20px; border: 2px solid #ddd; border-radius: 5px; font-size: 1em; min-width: 250px;">
+				<input type="text" name="name" placeholder="Spielername (optional)" style="padding: 12px 20px; border: 2px solid #ddd; border-radius: 5px; font-size: 1em; min-width: 250px;">
+				<button type="submit" class="btn">➕ Hinzufügen</button>
+			</form>
+		</div>
+		
+		<div class="admin-section">
+			<h2 class="section-title">📋 NFC-Chip Übersicht</h2>
+			
+			<table>
+				<thead>
+					<tr>
+						<th>NFC-ID</th>
+						<th>Spielername</th>
+						<th>Status</th>
+						<th>Spiele</th>
+						<th>Aktionen</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% if nfc_list %}
+						{% for nfc in nfc_list %}
+						<tr>
+							<td><strong>{{ nfc.nfc_id }}</strong></td>
+							<td>
+								{% if nfc.has_name %}
+									{{ nfc.name }}
+								{% else %}
+									<em style="color: #999;">Kein Name</em>
+								{% endif %}
+							</td>
+							<td>
+								{% if nfc.completed_all %}
+									<span class="status-badge status-complete">✓ Alle Spiele</span>
+								{% elif nfc.has_name %}
+									<span class="status-badge status-incomplete">⏳ In Bearbeitung</span>
+								{% else %}
+									<span class="status-badge status-unnamed">⚠ Unbenannt</span>
+								{% endif %}
+							</td>
+							<td class="game-stats">
+								<span>🔥 {{ nfc.games_played.heisser_draht }}</span>
+								<span>🎲 {{ nfc.games_played.vier_gewinnt }}</span>
+								<span>🧩 {{ nfc.games_played.puzzle }}</span>
+							</td>
+							<td>
+								<form method="POST" action="/admin/assign_name" class="form-inline">
+									<input type="hidden" name="nfc_id" value="{{ nfc.nfc_id }}">
+									<input type="text" name="name" placeholder="Name eingeben" value="{{ nfc.name if nfc.has_name else '' }}" required>
+									<button type="submit" class="btn btn-small">
+										{% if nfc.has_name and (nfc.games_played.heisser_draht > 0 or nfc.games_played.vier_gewinnt > 0 or nfc.games_played.puzzle > 0) %}
+											🔄 Neu zuweisen (Chip zurücksetzen)
+										{% elif nfc.has_name %}
+											✏️ Ändern
+										{% else %}
+											➕ Zuweisen
+										{% endif %}
+									</button>
+								</form>
+								{% if nfc.completed_all %}
+									<a href="/admin/certificate/{{ nfc.nfc_id }}" class="btn btn-small" target="_blank">🏅 Urkunde</a>
+								{% endif %}
+							</td>
+						</tr>
+						{% endfor %}
+					{% else %}
+						<tr>
+							<td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+								Noch keine NFC-Chips registriert
+							</td>
+						</tr>
+					{% endif %}
+				</tbody>
+			</table>
+		</div>
+		
+		<div class="admin-section">
+			<h2 class="section-title">ℹ️ Hinweise</h2>
+			<ul style="line-height: 2; color: #555;">
+				<li><strong>Neuen Chip hinzufügen:</strong> NFC-ID und optional Namen im Formular oben eingeben</li>
+				<li><strong>Namen zuweisen/ändern:</strong> Namen direkt in der Tabelle eingeben und Button klicken</li>
+				<li><strong>Spiele:</strong> 🔥 = Heißer Draht, 🎲 = Vier Gewinnt, 🧩 = Puzzle</li>
+				<li><strong>Urkunde:</strong> Verfügbar wenn alle 3 Spiele abgeschlossen sind</li>
+				<li><strong>Chip wiederverwenden:</strong> "🔄 Neu zuweisen" setzt Chip zurück (Leaderboard-Daten bleiben mit altem Namen erhalten)</li>
+				<li><strong>Leaderboard-Daten:</strong> Werden mit dem aktuellen Spielernamen gespeichert und bleiben bei Chip-Neuzuweisung erhalten</li>
+			</ul>
+		</div>
+		
+		<div class="buttons">
+			<a href="/" class="btn btn-back">🔙 Zurück zur Übersicht</a>
+		</div>
+	</div>
+</body>
+</html>

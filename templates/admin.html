@@ -58,8 +58,54 @@
 	</div>
 	
 	<div class="container">
+		<!-- Live NFC-Scanner -->
+		<div class="admin-section" style="background: linear-gradient(135deg, #f0f8e8 0%, #e8f5d8 100%); border: 3px solid #b1cb21;">
+			<h2 class="section-title" style="color: #5a6f10;">📡 Live NFC-Scanner</h2>
+			
+			<div style="text-align: center;">
+				<div id="scannerStatus" style="margin-bottom: 20px; font-size: 1.2em; font-weight: 600;">
+					⏸️ Scanner gestoppt
+				</div>
+				
+				<div style="margin-bottom: 20px;">
+					<button id="startScanBtn" class="btn" style="padding: 15px 40px; font-size: 1.1em;">
+						▶️ Scanner starten
+					</button>
+					<button id="stopScanBtn" class="btn btn-danger" style="padding: 15px 40px; font-size: 1.1em; display: none;">
+						⏸️ Scanner stoppen
+					</button>
+				</div>
+				
+				<div id="scanResult" style="background: white; border-radius: 10px; padding: 20px; min-height: 100px; display: none;">
+					<div style="font-size: 1.5em; margin-bottom: 10px;">
+						<strong>🎯 NFC-Tag erkannt!</strong>
+					</div>
+					<div style="font-size: 1.2em; color: #b1cb21; margin-bottom: 15px;">
+						<strong id="scannedNfcId"></strong>
+					</div>
+					<div id="scanPlayerInfo" style="color: #666; margin-bottom: 20px;"></div>
+					
+					<!-- Schnell-Zuweisung -->
+					<form id="quickAssignForm" style="display: none; margin-top: 20px;">
+						<input type="text" id="quickNameInput" placeholder="Spielername eingeben" required style="padding: 12px 20px; border: 2px solid #b1cb21; border-radius: 5px; font-size: 1em; min-width: 300px; margin-right: 10px;">
+						<button type="submit" id="quickAssignBtn" class="btn">✅ Namen zuweisen</button>
+					</form>
+					
+					<!-- Schnell-Löschen -->
+					<form id="quickDeleteForm" style="display: none; margin-top: 15px;">
+						<button type="submit" class="btn btn-small btn-danger">🗑️ Chip löschen</button>
+					</form>
+				</div>
+				
+				<div style="margin-top: 20px; padding: 15px; background: #fff8e1; border-radius: 10px; border-left: 4px solid #ff9800;">
+					<strong>💡 Hinweis:</strong> Arduino mit NFC-Reader muss am Computer angeschlossen und konfiguriert sein.<br>
+					Alternative: NFC-ID manuell unten eingeben.
+				</div>
+			</div>
+		</div>
+		
 		<div class="admin-section">
-			<h2 class="section-title">➕ Neuen NFC-Chip hinzufügen</h2>
+			<h2 class="section-title">➕ NFC-Chip manuell hinzufügen</h2>
 			<form method="POST" action="/admin/add_nfc" style="display: flex; gap: 15px; align-items: center; justify-content: center;">
 				<input type="text" name="nfc_id" placeholder="NFC-ID eingeben" required style="padding: 12px 20px; border: 2px solid #ddd; border-radius: 5px; font-size: 1em; min-width: 250px;">
 				<input type="text" name="name" placeholder="Spielername (optional)" style="padding: 12px 20px; border: 2px solid #ddd; border-radius: 5px; font-size: 1em; min-width: 250px;">
@@ -107,22 +153,31 @@
 								<span>🧩 {{ nfc.games_played.puzzle }}</span>
 							</td>
 							<td>
-								<form method="POST" action="/admin/assign_name" class="form-inline">
-									<input type="hidden" name="nfc_id" value="{{ nfc.nfc_id }}">
-									<input type="text" name="name" placeholder="Name eingeben" value="{{ nfc.name if nfc.has_name else '' }}" required>
-									<button type="submit" class="btn btn-small">
-										{% if nfc.has_name and (nfc.games_played.heisser_draht > 0 or nfc.games_played.vier_gewinnt > 0 or nfc.games_played.puzzle > 0) %}
-											🔄 Neu zuweisen (Chip zurücksetzen)
-										{% elif nfc.has_name %}
-											✏️ Ändern
-										{% else %}
-											➕ Zuweisen
-										{% endif %}
-									</button>
-								</form>
-								{% if nfc.completed_all %}
-									<a href="/admin/certificate/{{ nfc.nfc_id }}" class="btn btn-small" target="_blank">🏅 Urkunde</a>
-								{% endif %}
+								<div style="display: flex; flex-wrap: wrap; gap: 5px; align-items: center;">
+									<form method="POST" action="/admin/assign_name" class="form-inline" style="margin: 0;">
+										<input type="hidden" name="nfc_id" value="{{ nfc.nfc_id }}">
+										<input type="text" name="name" placeholder="Name eingeben" value="{{ nfc.name if nfc.has_name else '' }}" required>
+										<button type="submit" class="btn btn-small">
+											{% if nfc.has_name and (nfc.games_played.heisser_draht > 0 or nfc.games_played.vier_gewinnt > 0 or nfc.games_played.puzzle > 0) %}
+												🔄 Neu zuweisen (Chip zurücksetzen)
+											{% elif nfc.has_name %}
+												✏️ Ändern
+											{% else %}
+												➕ Zuweisen
+											{% endif %}
+										</button>
+									</form>
+									
+									{% if nfc.completed_all %}
+										<a href="/admin/certificate/{{ nfc.nfc_id }}" class="btn btn-small" target="_blank">🏅 Urkunde</a>
+									{% endif %}
+									
+									<form method="POST" action="/admin/delete_nfc" style="margin: 0;" 
+										  onsubmit="return confirm('Chip {{ nfc.nfc_id }}{% if nfc.has_name %} ({{ nfc.name }}){% endif %} wirklich löschen?\n\n{% if nfc.games_played.heisser_draht > 0 or nfc.games_played.vier_gewinnt > 0 or nfc.games_played.puzzle > 0 %}⚠️ Achtung: Spieldaten werden ins Archiv verschoben und bleiben in Leaderboards sichtbar.{% else %}Keine Spieldaten vorhanden.{% endif %}');">
+										<input type="hidden" name="nfc_id" value="{{ nfc.nfc_id }}">
+										<button type="submit" class="btn btn-small btn-danger">🗑️ Löschen</button>
+									</form>
+								</div>
 							</td>
 						</tr>
 						{% endfor %}
@@ -137,6 +192,56 @@
 			</table>
 		</div>
 		
+		<!-- Leaderboard Reset -->
+		<div class="admin-section" style="background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%); border: 3px solid #f44336;">
+			<h2 class="section-title" style="color: #d32f2f;">🗑️ Leaderboard zurücksetzen</h2>
+			
+			<div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+				<div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
+					<strong>⚠️ Warnung:</strong> Beim Zurücksetzen werden alle Spieldaten des gewählten Leaderboards gelöscht!<br>
+					<strong>💾 Backup:</strong> Vor dem Löschen wird automatisch ein Backup erstellt.
+				</div>
+				
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+					<!-- Heißer Draht Reset -->
+					<div style="background: #f0f8e8; border: 2px solid #b1cb21; border-radius: 10px; padding: 20px; text-align: center;">
+						<div style="font-size: 2em; margin-bottom: 10px;">🔥</div>
+						<h3 style="margin-bottom: 10px; color: #5a6f10;">Heißer Draht</h3>
+						<button onclick="resetLeaderboard('heisser_draht')" class="btn btn-danger" style="width: 100%;">
+							🗑️ Reset
+						</button>
+					</div>
+					
+					<!-- Vier Gewinnt Reset -->
+					<div style="background: #f0f8e8; border: 2px solid #b1cb21; border-radius: 10px; padding: 20px; text-align: center;">
+						<div style="font-size: 2em; margin-bottom: 10px;">🎲</div>
+						<h3 style="margin-bottom: 10px; color: #5a6f10;">Vier Gewinnt</h3>
+						<button onclick="resetLeaderboard('vier_gewinnt')" class="btn btn-danger" style="width: 100%;">
+							🗑️ Reset
+						</button>
+					</div>
+					
+					<!-- Puzzle Reset -->
+					<div style="background: #f0f8e8; border: 2px solid #b1cb21; border-radius: 10px; padding: 20px; text-align: center;">
+						<div style="font-size: 2em; margin-bottom: 10px;">🧩</div>
+						<h3 style="margin-bottom: 10px; color: #5a6f10;">Puzzle</h3>
+						<button onclick="resetLeaderboard('puzzle')" class="btn btn-danger" style="width: 100%;">
+							🗑️ Reset
+						</button>
+					</div>
+					
+					<!-- Alle Reset -->
+					<div style="background: #ffebee; border: 3px solid #f44336; border-radius: 10px; padding: 20px; text-align: center;">
+						<div style="font-size: 2em; margin-bottom: 10px;">💣</div>
+						<h3 style="margin-bottom: 10px; color: #d32f2f;">Alle Leaderboards</h3>
+						<button onclick="resetLeaderboard('all')" class="btn btn-danger" style="width: 100%; font-weight: bold;">
+							💣 ALLE LÖSCHEN
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		
 		<div class="admin-section">
 			<h2 class="section-title">ℹ️ Hinweise</h2>
 			<ul style="line-height: 2; color: #555;">
@@ -146,6 +251,7 @@
 				<li><strong>Urkunde:</strong> Verfügbar wenn alle 3 Spiele abgeschlossen sind</li>
 				<li><strong>Chip wiederverwenden:</strong> "🔄 Neu zuweisen" setzt Chip zurück (Leaderboard-Daten bleiben mit altem Namen erhalten)</li>
 				<li><strong>Leaderboard-Daten:</strong> Werden mit dem aktuellen Spielernamen gespeichert und bleiben bei Chip-Neuzuweisung erhalten</li>
+				<li><strong>Leaderboard Reset:</strong> Erstellt automatisch ein Backup vor dem Löschen</li>
 			</ul>
 		</div>
 		
@@ -153,5 +259,278 @@
 			<a href="/" class="btn btn-back">🔙 Zurück zur Übersicht</a>
 		</div>
 	</div>
+	
+	<script>
+		let scannerInterval = null;
+		let lastScannedNfc = null;
+		
+		const startBtn = document.getElementById('startScanBtn');
+		const stopBtn = document.getElementById('stopScanBtn');
+		const statusDiv = document.getElementById('scannerStatus');
+		const resultDiv = document.getElementById('scanResult');
+		const scannedIdSpan = document.getElementById('scannedNfcId');
+		const playerInfoDiv = document.getElementById('scanPlayerInfo');
+		const quickForm = document.getElementById('quickAssignForm');
+		const quickNameInput = document.getElementById('quickNameInput');
+		const quickDeleteForm = document.getElementById('quickDeleteForm');
+		
+		// Scanner starten
+		startBtn.addEventListener('click', () => {
+			startScanner();
+			startBtn.style.display = 'none';
+			stopBtn.style.display = 'inline-block';
+			statusDiv.innerHTML = '🟢 Scanner aktiv - Halte NFC-Tag an den Leser...';
+			statusDiv.style.color = '#4caf50';
+		});
+		
+		// Scanner stoppen
+		stopBtn.addEventListener('click', () => {
+			stopScanner();
+			stopBtn.style.display = 'none';
+			startBtn.style.display = 'inline-block';
+			statusDiv.innerHTML = '⏸️ Scanner gestoppt';
+			statusDiv.style.color = '#666';
+			resultDiv.style.display = 'none';
+		});
+		
+		// Scanner-Funktion
+		function startScanner() {
+			// Polling alle 500ms nach neuem NFC-Scan
+			scannerInterval = setInterval(async () => {
+				try {
+					const response = await fetch('/api/last_nfc_scan');
+					const data = await response.json();
+					
+					// Prüfe ob neuer Scan vorliegt
+					if (data.nfc_id && data.nfc_id !== lastScannedNfc) {
+						processNfcScan(
+							data.nfc_id, 
+							data.player_name, 
+							data.exists, 
+							data.has_name
+						);
+					}
+				} catch (error) {
+					console.error('Polling-Fehler:', error);
+				}
+			}, 500);
+		}
+		
+		function stopScanner() {
+			if (scannerInterval) {
+				clearInterval(scannerInterval);
+				scannerInterval = null;
+			}
+		}
+		
+		// NFC-Scan manuell auslösen (für Testing)
+		function processNfcScan(nfcId, playerName = null, exists = false, hasName = false) {
+			if (nfcId === lastScannedNfc) {
+				return; // Verhindere Duplikate
+			}
+			
+			lastScannedNfc = nfcId;
+			
+			// Ergebnis anzeigen
+			resultDiv.style.display = 'block';
+			scannedIdSpan.textContent = nfcId;
+			
+			const quickAssignBtn = document.getElementById('quickAssignBtn');
+			
+			if (hasName) {
+				// Chip hat bereits einen Namen - Zeige Option zum Umbenennen + Löschen
+				playerInfoDiv.innerHTML = `
+					<div style="color: #4caf50; font-size: 1.1em;">
+						✓ Chip bereits registriert: <strong>${playerName}</strong>
+					</div>
+					<div style="margin-top: 10px; color: #666;">
+						Chip kann jetzt für Spiele verwendet werden.
+					</div>
+					<div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+						<strong>💡 Namen ändern?</strong><br>
+						Gib einen neuen Namen ein und klicke auf "Namen ändern"
+					</div>
+				`;
+				quickForm.style.display = 'block';
+				quickNameInput.value = playerName; // Aktuellen Namen vorausfüllen
+				quickNameInput.focus();
+				quickNameInput.select(); // Text markieren für schnelles Überschreiben
+				quickAssignBtn.innerHTML = '✏️ Namen ändern'; // Button-Text ändern
+				quickDeleteForm.style.display = 'block'; // Lösch-Button anzeigen
+			} else {
+				// Chip ist neu oder unbenannt
+				playerInfoDiv.innerHTML = `
+					<div style="color: #ff9800; font-size: 1.1em;">
+						⚠️ Chip noch nicht benannt
+					</div>
+				`;
+				quickForm.style.display = 'block';
+				quickNameInput.value = '';
+				quickNameInput.focus();
+				quickAssignBtn.innerHTML = '✅ Namen zuweisen'; // Button-Text zurücksetzen
+				quickDeleteForm.style.display = 'block'; // Lösch-Button anzeigen (auch für unbenannte Chips)
+			}
+			
+			// Nach 5 Sekunden ausblenden
+			setTimeout(() => {
+				lastScannedNfc = null;
+			}, 5000);
+		}
+		
+		// Schnell-Zuweisung
+		quickForm.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			
+			const name = quickNameInput.value.trim();
+			const nfcId = scannedIdSpan.textContent;
+			const quickAssignBtn = document.getElementById('quickAssignBtn');
+			const isRename = quickAssignBtn.innerHTML.includes('ändern');
+			
+			if (!name || !nfcId) return;
+			
+			// Namen zuweisen
+			const formData = new FormData();
+			formData.append('nfc_id', nfcId);
+			formData.append('name', name);
+			
+			try {
+				const response = await fetch('/admin/assign_name', {
+					method: 'POST',
+					body: formData
+				});
+				
+				if (response.ok) {
+					const action = isRename ? 'geändert' : 'zugewiesen';
+					playerInfoDiv.innerHTML = `
+						<div style="color: #4caf50; font-size: 1.1em;">
+							✅ Name erfolgreich ${action}: <strong>${name}</strong>
+						</div>
+					`;
+					quickForm.style.display = 'none';
+					
+					// Seite nach 2 Sekunden neu laden
+					setTimeout(() => {
+						location.reload();
+					}, 2000);
+				}
+			} catch (error) {
+				alert('Fehler beim Zuweisen des Namens: ' + error);
+			}
+		});
+		
+		// Schnell-Löschen
+		quickDeleteForm.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			
+			const nfcId = scannedIdSpan.textContent;
+			const playerName = quickNameInput.value || 'Unbenannt';
+			
+			if (!nfcId) return;
+			
+			// Bestätigung anfordern
+			const confirmMsg = `Chip ${nfcId} (${playerName}) wirklich löschen?\n\n⚠️ Achtung: Falls Spieldaten vorhanden sind, werden diese ins Archiv verschoben und bleiben in Leaderboards sichtbar.`;
+			if (!confirm(confirmMsg)) return;
+			
+			// Chip löschen
+			const formData = new FormData();
+			formData.append('nfc_id', nfcId);
+			
+			try {
+				const response = await fetch('/admin/delete_nfc', {
+					method: 'POST',
+					body: formData
+				});
+				
+				if (response.ok) {
+					playerInfoDiv.innerHTML = `
+						<div style="color: #4caf50; font-size: 1.1em;">
+							✅ Chip erfolgreich gelöscht: <strong>${nfcId}</strong>
+						</div>
+					`;
+					quickForm.style.display = 'none';
+					quickDeleteForm.style.display = 'none';
+					
+					// Seite nach 2 Sekunden neu laden
+					setTimeout(() => {
+						location.reload();
+					}, 2000);
+				}
+			} catch (error) {
+				alert('Fehler beim Löschen des Chips: ' + error);
+			}
+		});
+		
+		// Leaderboard zurücksetzen
+		async function resetLeaderboard(gameType) {
+			const gameNames = {
+				'heisser_draht': 'Heißer Draht',
+				'vier_gewinnt': 'Vier Gewinnt',
+				'puzzle': 'Puzzle',
+				'all': 'ALLE LEADERBOARDS'
+			};
+			
+			const gameName = gameNames[gameType] || gameType;
+			
+			// Doppelte Bestätigung für "Alle löschen"
+			if (gameType === 'all') {
+				const firstConfirm = confirm(
+					`⚠️ ACHTUNG: Du bist dabei, ALLE LEADERBOARDS zu löschen!\n\n` +
+					`Dies betrifft:\n` +
+					`- 🔥 Heißer Draht\n` +
+					`- 🎲 Vier Gewinnt\n` +
+					`- 🧩 Puzzle\n\n` +
+					`Alle Spieldaten werden gelöscht (aber im Backup gespeichert).\n\n` +
+					`Bist du SICHER, dass du fortfahren möchtest?`
+				);
+				
+				if (!firstConfirm) return;
+				
+				const secondConfirm = confirm(
+					`⚠️ LETZTE WARNUNG!\n\n` +
+					`Wirklich ALLE Leaderboards unwiderruflich löschen?\n\n` +
+					`(Ein Backup wird erstellt)`
+				);
+				
+				if (!secondConfirm) return;
+			} else {
+				// Einfache Bestätigung für einzelne Leaderboards
+				const confirm_msg = confirm(
+					`Leaderboard "${gameName}" wirklich zurücksetzen?\n\n` +
+					`⚠️ Alle Spieldaten für dieses Spiel werden gelöscht!\n` +
+					`💾 Ein Backup wird automatisch erstellt.`
+				);
+				
+				if (!confirm_msg) return;
+			}
+			
+			// Reset durchführen
+			const formData = new FormData();
+			formData.append('game_type', gameType);
+			
+			try {
+				const response = await fetch('/admin/reset_leaderboard', {
+					method: 'POST',
+					body: formData
+				});
+				
+				const result = await response.json();
+				
+				if (result.success) {
+					alert(
+						`✅ ${result.message}\n\n` +
+						`💾 Backup gespeichert: ${result.backup_file}`
+					);
+					location.reload();
+				} else {
+					alert('❌ Fehler: ' + result.message);
+				}
+			} catch (error) {
+				alert('❌ Fehler beim Zurücksetzen: ' + error);
+			}
+		}
+		
+		// Event-Listener für Arduino-Daten (über Server-Sent Events oder WebSocket)
+		// Für die Implementierung mit dem Arduino-Code siehe unten
+	</script>
 </body>
 </html>

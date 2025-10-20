@@ -7,6 +7,7 @@ Ein Flask-basiertes Leaderboard-System für drei verschiedene Spiele mit NFC-Chi
 - [Übersicht](#übersicht)
 - [Systemarchitektur](#systemarchitektur)
 - [Installation](#installation)
+- [NFC-Reader Integration](#nfc-reader-integration)
 - [Server starten](#server-starten)
 - [Spiele & Endpunkte](#spiele--endpunkte)
 - [Verwaltungssystem](#verwaltungssystem)
@@ -157,8 +158,9 @@ Heißer Draht Server/
 # 1. Repository klonen oder Ordner öffnen
 cd "C:\...\Heißer Draht Server"
 
-# 2. Flask installieren (falls nicht vorhanden)
+# 2. Abhängigkeiten installieren
 pip install flask
+pip install pyserial requests  # Für Arduino NFC-Reader
 
 # 3. Server starten
 python server.py
@@ -168,9 +170,89 @@ python server.py
 
 1. **Server starten** → Server läuft auf `http://localhost:5000`
 2. **Admin-Panel öffnen** → `http://localhost:5000/admin`
-3. **NFC-Chips registrieren** → Neue Chips mit Namen hinzufügen
-4. **Spiele spielen** → Daten über API senden
-5. **Leaderboards anzeigen** → Automatische Updates
+3. **NFC-Reader einrichten** → Siehe [NFC-Reader Integration](#nfc-reader-integration)
+4. **NFC-Chips registrieren** → Mit Arduino scannen oder manuell eingeben
+5. **Spiele spielen** → Daten über API senden
+6. **Leaderboards anzeigen** → Automatische Updates
+
+---
+
+## 📡 NFC-Reader Integration
+
+Das System unterstützt **automatisches Einlesen von NFC-Tags** über Arduino!
+
+### Hardware-Setup
+
+**Benötigt:**
+- Arduino Uno/Nano/Mega (oder ESP8266/ESP32 mit WiFi)
+- MFRC522 RFID/NFC Reader Modul
+- NFC-Tags (ISO14443A)
+
+**Verkabelung:**
+```
+Arduino Uno    →    MFRC522
+3.3V           →    VCC (⚠️ NICHT 5V!)
+GND            →    GND
+Pin 9          →    RST
+Pin 10         →    SDA
+Pin 11         →    MOSI
+Pin 12         →    MISO
+Pin 13         →    SCK
+```
+
+### Software-Setup
+
+**1. Arduino-Bibliothek installieren:**
+```
+Arduino IDE → Bibliotheken verwalten → "MFRC522" installieren
+```
+
+**2. Arduino-Code hochladen:**
+```
+Datei öffnen: arduino_nfc_reader.ino
+Upload auf Arduino
+```
+
+**3. Python-Bridge starten:**
+```powershell
+# Terminal 1: Server
+python server.py
+
+# Terminal 2: Arduino-Bridge
+python arduino_bridge.py
+```
+
+**4. NFC-Tags scannen:**
+- NFC-Tag an Reader halten
+- Bridge sendet ID automatisch an Server
+- Admin-Panel zeigt neuen Chip an
+- Namen zuweisen → Fertig!
+
+### Optionen
+
+**Option A: Serieller Modus (Arduino Uno/Nano)**
+- Arduino per USB an Computer
+- `arduino_bridge.py` läuft auf Computer
+- Sendet Daten per HTTP an Server
+
+**Option B: WiFi-Modus (ESP8266/ESP32)**
+- ESP verbindet sich direkt mit WiFi
+- Sendet Daten direkt an Server
+- Kein Computer nötig!
+- WiFi-Credentials in `arduino_nfc_reader.ino` eintragen
+
+**Option C: Manuell (ohne Hardware)**
+- Admin-Panel → "NFC-Chip manuell hinzufügen"
+- NFC-ID eintippen
+
+### 📖 Detaillierte Anleitung
+
+**→ Siehe `NFC_INTEGRATION.md` für:**
+- Schritt-für-Schritt Hardware-Setup
+- Verkabelungs-Diagramme
+- Troubleshooting
+- ESP8266/ESP32 WiFi-Konfiguration
+- Arduino-Code Erklärungen
 
 ---
 
@@ -750,6 +832,17 @@ background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%);
 
 ---
 
+## 📚 Zusätzliche Dokumentation
+
+- **[LEADERBOARD_RESET.md](LEADERBOARD_RESET.md)** - Leaderboards zurücksetzen (einzeln oder alle)
+- **[NFC_INTEGRATION.md](NFC_INTEGRATION.md)** - Arduino NFC-Reader Integration
+- **[LIVE_SCANNER_ANLEITUNG.md](LIVE_SCANNER_ANLEITUNG.md)** - Live NFC-Scanner Anleitung
+- **[API_DOKUMENTATION.md](API_DOKUMENTATION.md)** - Vollständige API-Referenz
+- **[TROUBLESHOOTING_QUICK.md](TROUBLESHOOTING_QUICK.md)** - Schnelle Problemlösungen
+- **[TEST_UMBENENNEN.md](TEST_UMBENENNEN.md)** - Spieler umbenennen
+
+---
+
 ## ✅ Quick Start Checkliste
 
 - [ ] Python 3.8+ installiert
@@ -762,5 +855,6 @@ background: linear-gradient(135deg, #b1cb21 0%, #8fa619 100%);
 - [ ] Leaderboards geprüft
 - [ ] Archiv-System getestet (Chip-Neuzuweisung)
 - [ ] Urkunde generiert
+- [ ] Reset-Funktion getestet (optional)
 
 **🎉 Viel Erfolg mit dem Game Station Server!**

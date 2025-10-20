@@ -21,6 +21,15 @@ game_data = {}
 # Archivierte Spieldaten: [{name, heisser_draht: [], vier_gewinnt: [], puzzle: [], archived_date}]
 game_archive = []
 
+# Letzter gescannter NFC-Chip (für Live-Scanner im Admin-Panel)
+last_scanned_nfc = {
+    "nfc_id": None,
+    "timestamp": None,
+    "exists": False,
+    "has_name": False,
+    "player_name": None
+}
+
 # Laden der gespeicherten Daten
 def load_data():
     global nfc_mapping, game_data, game_archive
@@ -436,6 +445,50 @@ def assign_name():
     
     return redirect(url_for('admin'))
 
+# NFC-Chip löschen
+@app.route('/admin/delete_nfc', methods=['POST'])
+def delete_nfc():
+    nfc_id = str(request.form.get('nfc_id', '')).strip()
+    
+    if not nfc_id:
+        return redirect(url_for('admin'))
+    
+    # Prüfe ob Chip Spieldaten hat
+    has_games = False
+    if nfc_id in game_data:
+        has_games = (
+            len(game_data[nfc_id].get("heisser_draht", [])) > 0 or
+            len(game_data[nfc_id].get("vier_gewinnt", [])) > 0 or
+            len(game_data[nfc_id].get("puzzle", [])) > 0
+        )
+    
+    # Wenn Spiele vorhanden, erst archivieren
+    if has_games:
+        player_name = nfc_mapping.get(nfc_id, "Unbekannt")
+        archive_entry = {
+            "name": player_name,
+            "heisser_draht": game_data[nfc_id]["heisser_draht"],
+            "vier_gewinnt": game_data[nfc_id]["vier_gewinnt"],
+            "puzzle": game_data[nfc_id]["puzzle"],
+            "archived_date": datetime.now().isoformat(),
+            "original_nfc_id": nfc_id,
+            "reason": "Chip gelöscht"
+        }
+        game_archive.append(archive_entry)
+        save_archive()
+    
+    # Entferne Chip aus allen Datenstrukturen
+    if nfc_id in nfc_mapping:
+        del nfc_mapping[nfc_id]
+    
+    if nfc_id in game_data:
+        del game_data[nfc_id]
+    
+    save_nfc_mapping()
+    save_game_data()
+    
+    return redirect(url_for('admin'))
+
 # Neuen NFC-Chip manuell hinzufügen
 @app.route('/admin/add_nfc', methods=['POST'])
 def add_nfc():
@@ -457,6 +510,53 @@ def add_nfc():
     
     return redirect(url_for('admin'))
 
+# API: NFC-Scan vom Arduino/ESP empfangen
+@app.route('/api/nfc_scan', methods=['POST'])
+def nfc_scan():
+    global last_scanned_nfc
+    
+    data = request.get_json()
+    nfc_id = str(data.get('nfc_id', '')).strip()
+    
+    if not nfc_id:
+        return jsonify({"status": "error", "message": "Keine NFC-ID empfangen"}), 400
+    
+    print(f"NFC-Scan empfangen: {nfc_id}")
+    
+    # Prüfen ob Chip bereits existiert
+    chip_exists = nfc_id in game_data
+    chip_has_name = nfc_id in nfc_mapping
+    
+    # Wenn neu, initialisieren
+    if not chip_exists:
+        init_player_data(nfc_id)
+        save_game_data()
+    
+    # Response mit Chip-Status
+    response = {
+        "status": "success",
+        "nfc_id": nfc_id,
+        "exists": chip_exists,
+        "has_name": chip_has_name,
+        "player_name": nfc_mapping.get(nfc_id, "Unbenannt")
+    }
+    
+    # Speichere für Live-Scanner im Admin-Panel
+    last_scanned_nfc = {
+        "nfc_id": nfc_id,
+        "timestamp": datetime.now().isoformat(),
+        "exists": chip_exists,
+        "has_name": chip_has_name,
+        "player_name": nfc_mapping.get(nfc_id, "Unbenannt")
+    }
+    
+    return jsonify(response)
+
+# API: Letzten NFC-Scan abrufen (für Live-Scanner)
+@app.route('/api/last_nfc_scan', methods=['GET'])
+def get_last_nfc_scan():
+    return jsonify(last_scanned_nfc)
+
 # Urkunde generieren (für Spieler die alle Spiele abgeschlossen haben)
 @app.route('/admin/certificate/<nfc_id>')
 def generate_certificate_admin(nfc_id):
@@ -473,6 +573,69 @@ def generate_certificate_admin(nfc_id):
     }
     
     return render_template('certificate_multi.html', player=player_data)
+
+# Leaderboard zurücksetzen
+@app.route('/admin/reset_leaderboard', methods=['POST'])
+def reset_leaderboard():
+    game_type = request.form.get('game_type')  # 'all', 'heisser_draht', 'vier_gewinnt', 'puzzle'
+    
+    if not game_type:
+        return jsonify({"success": False, "message": "Kein Spieltyp angegeben"}), 400
+    
+    # Backup erstellen vor dem Löschen
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_data = {
+        "timestamp": timestamp,
+        "game_type": game_type,
+        "game_data": game_data.copy(),
+        "game_archive": game_archive.copy()
+    }
+    
+    backup_filename = f"leaderboard_backup_{game_type}_{timestamp}.json"
+    with open(backup_filename, 'w', encoding='utf-8') as f:
+        json.dump(backup_data, f, indent=4, ensure_ascii=False)
+    
+    # Leaderboard(s) zurücksetzen
+    if game_type == 'all':
+        # Alle Spieldaten löschen
+        for nfc_id in game_data:
+            game_data[nfc_id] = {
+                "heisser_draht": [],
+                "vier_gewinnt": [],
+                "puzzle": []
+            }
+        # Archiv leeren
+        game_archive.clear()
+        message = "Alle Leaderboards wurden zurückgesetzt"
+    
+    elif game_type in ['heisser_draht', 'vier_gewinnt', 'puzzle']:
+        # Einzelnes Spiel zurücksetzen
+        for nfc_id in game_data:
+            game_data[nfc_id][game_type] = []
+        
+        # Aus Archiv entfernen
+        for archive_entry in game_archive:
+            archive_entry[game_type] = []
+        
+        game_names = {
+            'heisser_draht': 'Heißer Draht',
+            'vier_gewinnt': 'Vier Gewinnt',
+            'puzzle': 'Puzzle'
+        }
+        message = f"Leaderboard '{game_names[game_type]}' wurde zurückgesetzt"
+    
+    else:
+        return jsonify({"success": False, "message": "Ungültiger Spieltyp"}), 400
+    
+    # Daten speichern
+    save_game_data()
+    save_archive()
+    
+    return jsonify({
+        "success": True,
+        "message": message,
+        "backup_file": backup_filename
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

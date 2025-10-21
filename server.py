@@ -187,14 +187,18 @@ def get_top5_vier_gewinnt():
         if len(vier_gewinnt_games) > 0:
             # Nimm den Namen vom letzten Spiel (neuester Name)
             last_name = vier_gewinnt_games[-1].get("name", get_player_name(nfc_id))
-            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
-            total = len(vier_gewinnt_games)
+            # Berechne Durchschnittszüge (niedriger = besser)
+            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
+            game_count = len(vier_gewinnt_games)
+            avg_moves = total_moves / game_count if game_count > 0 else 999
+            best_moves = min(e.get("moves", 999) for e in vier_gewinnt_games)
+            
             all_entries.append({
                 "name": last_name,
                 "nfc_id": nfc_id,
-                "wins": wins,
-                "total": total,
-                "win_rate": wins / total * 100,
+                "avg_moves": avg_moves,
+                "best_moves": best_moves,
+                "total": game_count,
                 "games": vier_gewinnt_games
             })
     # Archivierte Spieldaten
@@ -202,17 +206,21 @@ def get_top5_vier_gewinnt():
         vier_gewinnt_games = archive_entry.get("vier_gewinnt", [])
         if len(vier_gewinnt_games) > 0:
             last_name = vier_gewinnt_games[-1].get("name", archive_entry.get("name", "Unbekannt"))
-            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
-            total = len(vier_gewinnt_games)
+            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
+            game_count = len(vier_gewinnt_games)
+            avg_moves = total_moves / game_count if game_count > 0 else 999
+            best_moves = min(e.get("moves", 999) for e in vier_gewinnt_games)
+            
             all_entries.append({
                 "name": last_name,
                 "nfc_id": "archived",
-                "wins": wins,
-                "total": total,
-                "win_rate": wins / total * 100,
+                "avg_moves": avg_moves,
+                "best_moves": best_moves,
+                "total": game_count,
                 "games": vier_gewinnt_games
             })
-    all_entries.sort(key=lambda x: (x["win_rate"], x["wins"]), reverse=True)
+    # Sortiere nach besten Zügen (niedrigste zuerst), dann nach Durchschnitt
+    all_entries.sort(key=lambda x: (x["best_moves"], x["avg_moves"]))
     return all_entries[:5]
 
 def get_bottom5_vier_gewinnt():
@@ -223,14 +231,17 @@ def get_bottom5_vier_gewinnt():
         if len(vier_gewinnt_games) > 0:
             # Nimm den Namen vom letzten Spiel (neuester Name)
             last_name = vier_gewinnt_games[-1].get("name", get_player_name(nfc_id))
-            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
-            total = len(vier_gewinnt_games)
+            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
+            game_count = len(vier_gewinnt_games)
+            avg_moves = total_moves / game_count if game_count > 0 else 999
+            worst_moves = max(e.get("moves", 0) for e in vier_gewinnt_games)
+            
             all_entries.append({
                 "name": last_name,
                 "nfc_id": nfc_id,
-                "wins": wins,
-                "total": total,
-                "win_rate": wins / total * 100,
+                "avg_moves": avg_moves,
+                "worst_moves": worst_moves,
+                "total": game_count,
                 "games": vier_gewinnt_games
             })
     # Archivierte Spieldaten
@@ -238,17 +249,21 @@ def get_bottom5_vier_gewinnt():
         vier_gewinnt_games = archive_entry.get("vier_gewinnt", [])
         if len(vier_gewinnt_games) > 0:
             last_name = vier_gewinnt_games[-1].get("name", archive_entry.get("name", "Unbekannt"))
-            wins = sum(1 for e in vier_gewinnt_games if e["result"] == "won")
-            total = len(vier_gewinnt_games)
+            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
+            game_count = len(vier_gewinnt_games)
+            avg_moves = total_moves / game_count if game_count > 0 else 999
+            worst_moves = max(e.get("moves", 0) for e in vier_gewinnt_games)
+            
             all_entries.append({
                 "name": last_name,
                 "nfc_id": "archived",
-                "wins": wins,
-                "total": total,
-                "win_rate": wins / total * 100,
+                "avg_moves": avg_moves,
+                "worst_moves": worst_moves,
+                "total": game_count,
                 "games": vier_gewinnt_games
             })
-    all_entries.sort(key=lambda x: (x["win_rate"], x["wins"]))
+    # Sortiere nach schlechtesten Zügen (höchste zuerst), dann nach Durchschnitt
+    all_entries.sort(key=lambda x: (x["worst_moves"], x["avg_moves"]), reverse=True)
     return all_entries[:5]
 
 def get_top5_puzzle():
@@ -332,23 +347,23 @@ def receive_vier_gewinnt():
     data = request.json
     print("Vier Gewinnt Daten empfangen:", data)
     
-    if not data or 'nfc_id' not in data or 'result' not in data:
-        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    if not data or 'nfc_id' not in data or 'moves' not in data:
+        return jsonify({"status": "error", "message": "Invalid data - nfc_id and moves required"}), 400
     
     nfc_id = str(data['nfc_id'])
     init_player_data(nfc_id)
     
     entry = {
         "name": get_player_name(nfc_id),  # Name direkt speichern
-        "result": data['result'],  # "won" oder "lost"
-        "difficulty": data.get('difficulty', 'unknown'),
+        "moves": int(data['moves']),  # Anzahl der Züge
+        "difficulty": data.get('difficulty', 'Mittel'),
         "timestamp": datetime.now().isoformat()
     }
     
     game_data[nfc_id]["vier_gewinnt"].append(entry)
     save_game_data()
     
-    return jsonify({"status": "success", "player_name": get_player_name(nfc_id)})
+    return jsonify({"status": "success", "player_name": get_player_name(nfc_id), "moves": entry['moves']})
 
 # API-Endpunkt: Puzzle Daten empfangen
 @app.route('/api/puzzle', methods=['POST'])

@@ -50,7 +50,7 @@
 	<div class="container">
 		<div class="leaderboard-grid">
 			<div class="leaderboard-section">
-				<h2 class="section-title">🏆 Top 5</h2>
+				<h2 class="section-title">🏆 Top 5 - Wenigste Züge</h2>
 				{% if top5 %}
 					<ol class="leaderboard-list">
 					{% for entry in top5 %}
@@ -59,8 +59,9 @@
 							<div class="player-info">
 								<div class="player-name">{{ entry.name }}</div>
 								<div class="player-stats">
-									<span class="stat"><span class="stat-label">🏆 Siege:</span> {{ entry.wins }}/{{ entry.total }}</span>
-									<span class="stat"><span class="stat-label">📊 Quote:</span> {{ "%.1f"|format(entry.win_rate) }}%</span>
+									<span class="stat"><span class="stat-label">� Beste Züge:</span> {{ entry.best_moves }}</span>
+									<span class="stat"><span class="stat-label">📊 Ø Züge:</span> {{ "%.1f"|format(entry.avg_moves) }}</span>
+									<span class="stat"><span class="stat-label">🎮 Spiele:</span> {{ entry.total }}</span>
 								</div>
 							</div>
 						</li>
@@ -71,7 +72,7 @@
 				{% endif %}
 			</div>
 			<div class="leaderboard-section">
-				<h2 class="section-title">📉 Letzte 5</h2>
+				<h2 class="section-title">📉 Letzte 5 - Meiste Züge</h2>
 				{% if bottom5 %}
 					<ul class="leaderboard-list">
 					{% for entry in bottom5 %}
@@ -80,8 +81,9 @@
 							<div class="player-info">
 								<div class="player-name">{{ entry.name }}</div>
 								<div class="player-stats">
-									<span class="stat"><span class="stat-label">🏆 Siege:</span> {{ entry.wins }}/{{ entry.total }}</span>
-									<span class="stat"><span class="stat-label">📊 Quote:</span> {{ "%.1f"|format(entry.win_rate) }}%</span>
+									<span class="stat"><span class="stat-label">😰 Meiste Züge:</span> {{ entry.worst_moves }}</span>
+									<span class="stat"><span class="stat-label">📊 Ø Züge:</span> {{ "%.1f"|format(entry.avg_moves) }}</span>
+									<span class="stat"><span class="stat-label">🎮 Spiele:</span> {{ entry.total }}</span>
 									<span class="stat"><span class="stat-label">🕒</span> {{ entry.games[-1].timestamp[:10] if entry.games else '' }} {{ entry.games[-1].timestamp[11:16] if entry.games else '' }}</span>
 								</div>
 							</div>

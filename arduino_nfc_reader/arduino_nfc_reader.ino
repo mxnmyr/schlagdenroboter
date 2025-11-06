@@ -4,16 +4,19 @@
  * Liest NFC-Tags aus und sendet die UID automatisch an den Server
  * 
  * Hardware:
- * - Arduino Uno/Nano/Mega
+ * - Wemos D1 Mini V4.0 (ESP8266)
  * - MFRC522 RFID Reader
- * - ESP8266 WiFi-Modul ODER ESP32 (für WiFi-Verbindung)
  * 
- * Verbindungen MFRC522:
- * RST  -> Pin 9
- * SS   -> Pin 10
- * MOSI -> Pin 11
- * MISO -> Pin 12
- * SCK  -> Pin 13
+ * Verbindungen MFRC522 -> Wemos D1 Mini V4.0:
+ * --------------------------------------------
+ * SDA/SS   -> D8  (GPIO15)
+ * SCK      -> D5  (GPIO14)
+ * MOSI     -> D7  (GPIO13)
+ * MISO     -> D6  (GPIO12)
+ * IRQ      -> nicht verbunden
+ * GND      -> GND
+ * RST      -> D3  (GPIO0)
+ * 3.3V     -> 3.3V (WICHTIG: NICHT 5V!)
  */
 
 #include <SPI.h>
@@ -28,9 +31,9 @@
   #define WIFI_ENABLED false
 #endif
 
-// RFID Pin-Konfiguration
-#define RST_PIN         9
-#define SS_PIN          10
+// RFID Pin-Konfiguration für Wemos D1 Mini V4.0
+#define RST_PIN         D3    // GPIO0
+#define SS_PIN          D8    // GPIO15
 
 // WiFi-Konfiguration (nur für ESP8266/ESP32)
 const char* ssid = "DEIN_WIFI_NAME";           // WiFi-Name hier eintragen

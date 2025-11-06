@@ -30,6 +30,9 @@ last_scanned_nfc = {
     "player_name": None
 }
 
+# Timestamp der letzten Datenänderung
+last_data_update = datetime.now().isoformat()
+
 # Laden der gespeicherten Daten
 def load_data():
     global nfc_mapping, game_data, game_archive
@@ -58,12 +61,16 @@ def save_nfc_mapping():
         json.dump(nfc_mapping, file, indent=4, ensure_ascii=False)
 
 def save_game_data():
+    global last_data_update
     with open(GAME_DATA_FILE, "w", encoding="utf-8") as file:
         json.dump(game_data, file, indent=4, ensure_ascii=False)
+    last_data_update = datetime.now().isoformat()
 
 def save_archive():
+    global last_data_update
     with open(ARCHIVE_FILE, "w", encoding="utf-8") as file:
         json.dump(game_archive, file, indent=4, ensure_ascii=False)
+    last_data_update = datetime.now().isoformat()
 
 # Initialisierung
 load_data()
@@ -176,7 +183,8 @@ def get_bottom5_heisser_draht():
                 "difficulty": entry["difficulty"],
                 "timestamp": entry["timestamp"]
             })
-    all_entries.sort(key=lambda x: x["time"], reverse=True)
+    # Sortiere nach Timestamp absteigend (neueste zuerst)
+    all_entries.sort(key=lambda x: x["timestamp"], reverse=True)
     return all_entries[:5]
 
 def get_top5_vier_gewinnt():
@@ -185,13 +193,16 @@ def get_top5_vier_gewinnt():
     for nfc_id, data in game_data.items():
         vier_gewinnt_games = data.get("vier_gewinnt", [])
         if len(vier_gewinnt_games) > 0:
-            # Nimm den Namen vom letzten Spiel (neuester Name)
-            last_name = vier_gewinnt_games[-1].get("name", get_player_name(nfc_id))
-            # Berechne Durchschnittszüge (niedriger = besser)
-            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
-            game_count = len(vier_gewinnt_games)
+            # Filtere nur Spiele mit "moves" (neue Daten)
+            games_with_moves = [g for g in vier_gewinnt_games if "moves" in g]
+            if len(games_with_moves) == 0:
+                continue  # Überspringe alte Daten ohne moves
+            
+            last_name = games_with_moves[-1].get("name", get_player_name(nfc_id))
+            total_moves = sum(e.get("moves", 0) for e in games_with_moves)
+            game_count = len(games_with_moves)
             avg_moves = total_moves / game_count if game_count > 0 else 999
-            best_moves = min(e.get("moves", 999) for e in vier_gewinnt_games)
+            best_moves = min(e.get("moves", 999) for e in games_with_moves)
             
             all_entries.append({
                 "name": last_name,
@@ -199,17 +210,22 @@ def get_top5_vier_gewinnt():
                 "avg_moves": avg_moves,
                 "best_moves": best_moves,
                 "total": game_count,
-                "games": vier_gewinnt_games
+                "games": games_with_moves
             })
     # Archivierte Spieldaten
     for archive_entry in game_archive:
         vier_gewinnt_games = archive_entry.get("vier_gewinnt", [])
         if len(vier_gewinnt_games) > 0:
-            last_name = vier_gewinnt_games[-1].get("name", archive_entry.get("name", "Unbekannt"))
-            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
-            game_count = len(vier_gewinnt_games)
+            # Filtere nur Spiele mit "moves"
+            games_with_moves = [g for g in vier_gewinnt_games if "moves" in g]
+            if len(games_with_moves) == 0:
+                continue  # Überspringe alte Daten ohne moves
+            
+            last_name = games_with_moves[-1].get("name", archive_entry.get("name", "Unbekannt"))
+            total_moves = sum(e.get("moves", 0) for e in games_with_moves)
+            game_count = len(games_with_moves)
             avg_moves = total_moves / game_count if game_count > 0 else 999
-            best_moves = min(e.get("moves", 999) for e in vier_gewinnt_games)
+            best_moves = min(e.get("moves", 999) for e in games_with_moves)
             
             all_entries.append({
                 "name": last_name,
@@ -217,7 +233,7 @@ def get_top5_vier_gewinnt():
                 "avg_moves": avg_moves,
                 "best_moves": best_moves,
                 "total": game_count,
-                "games": vier_gewinnt_games
+                "games": games_with_moves
             })
     # Sortiere nach besten Zügen (niedrigste zuerst), dann nach Durchschnitt
     all_entries.sort(key=lambda x: (x["best_moves"], x["avg_moves"]))
@@ -228,42 +244,30 @@ def get_bottom5_vier_gewinnt():
     # Aktive Spieldaten
     for nfc_id, data in game_data.items():
         vier_gewinnt_games = data.get("vier_gewinnt", [])
-        if len(vier_gewinnt_games) > 0:
-            # Nimm den Namen vom letzten Spiel (neuester Name)
-            last_name = vier_gewinnt_games[-1].get("name", get_player_name(nfc_id))
-            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
-            game_count = len(vier_gewinnt_games)
-            avg_moves = total_moves / game_count if game_count > 0 else 999
-            worst_moves = max(e.get("moves", 0) for e in vier_gewinnt_games)
-            
-            all_entries.append({
-                "name": last_name,
-                "nfc_id": nfc_id,
-                "avg_moves": avg_moves,
-                "worst_moves": worst_moves,
-                "total": game_count,
-                "games": vier_gewinnt_games
-            })
+        for game in vier_gewinnt_games:
+            # Nur Spiele mit "moves"
+            if "moves" in game:
+                all_entries.append({
+                    "name": game.get("name", get_player_name(nfc_id)),
+                    "nfc_id": nfc_id,
+                    "moves": game["moves"],
+                    "difficulty": game.get("difficulty", "Unbekannt"),
+                    "timestamp": game["timestamp"]
+                })
     # Archivierte Spieldaten
     for archive_entry in game_archive:
         vier_gewinnt_games = archive_entry.get("vier_gewinnt", [])
-        if len(vier_gewinnt_games) > 0:
-            last_name = vier_gewinnt_games[-1].get("name", archive_entry.get("name", "Unbekannt"))
-            total_moves = sum(e.get("moves", 0) for e in vier_gewinnt_games)
-            game_count = len(vier_gewinnt_games)
-            avg_moves = total_moves / game_count if game_count > 0 else 999
-            worst_moves = max(e.get("moves", 0) for e in vier_gewinnt_games)
-            
-            all_entries.append({
-                "name": last_name,
-                "nfc_id": "archived",
-                "avg_moves": avg_moves,
-                "worst_moves": worst_moves,
-                "total": game_count,
-                "games": vier_gewinnt_games
-            })
-    # Sortiere nach schlechtesten Zügen (höchste zuerst), dann nach Durchschnitt
-    all_entries.sort(key=lambda x: (x["worst_moves"], x["avg_moves"]), reverse=True)
+        for game in vier_gewinnt_games:
+            if "moves" in game:
+                all_entries.append({
+                    "name": game.get("name", archive_entry.get("name", "Unbekannt")),
+                    "nfc_id": "archived",
+                    "moves": game["moves"],
+                    "difficulty": game.get("difficulty", "Unbekannt"),
+                    "timestamp": game["timestamp"]
+                })
+    # Sortiere nach Timestamp absteigend (neueste zuerst)
+    all_entries.sort(key=lambda x: x["timestamp"], reverse=True)
     return all_entries[:5]
 
 def get_top5_puzzle():
@@ -313,7 +317,8 @@ def get_bottom5_puzzle():
                 "difficulty": entry.get("difficulty", "unknown"),
                 "timestamp": entry["timestamp"]
             })
-    all_entries.sort(key=lambda x: x["time"], reverse=True)
+    # Sortiere nach Timestamp absteigend (neueste zuerst)
+    all_entries.sort(key=lambda x: x["timestamp"], reverse=True)
     return all_entries[:5]
 
 # API-Endpunkt: Heißer Draht Daten empfangen
@@ -571,6 +576,11 @@ def nfc_scan():
 @app.route('/api/last_nfc_scan', methods=['GET'])
 def get_last_nfc_scan():
     return jsonify(last_scanned_nfc)
+
+# Letzten Update-Timestamp abrufen
+@app.route('/api/last_update', methods=['GET'])
+def get_last_update():
+    return jsonify({"last_update": last_data_update})
 
 # Urkunde generieren (für Spieler die alle Spiele abgeschlossen haben)
 @app.route('/admin/certificate/<nfc_id>')

@@ -67,38 +67,6 @@ void setup() {
   mfrc522.PCD_Init();
   delay(100);
   
-  // Startup-Meldungen
-  Serial.println(F("========================================"));
-  Serial.println(F("  NFC Reader - Roboter Edition"));
-  Serial.println(F("  Wemos D1 Mini V4.0 + MFRC522"));
-  Serial.println(F("========================================"));
-  Serial.println();
-  
-  // ESP8266 Info ausgeben
-  Serial.print(F("ESP8266 Chip ID: 0x"));
-  Serial.println(ESP.getChipId(), HEX);
-  Serial.print(F("Flash Size: "));
-  Serial.print(ESP.getFlashChipSize() / 1024 / 1024);
-  Serial.println(F(" MB"));
-  Serial.println();
-  
-  // Reader-Details ausgeben
-  Serial.print(F("RFID Reader: "));
-  mfrc522.PCD_DumpVersionToSerial();
-  Serial.println();
-  
-  Serial.println(F("Pin-Konfiguration:"));
-  Serial.println(F("  RST -> D3 (GPIO0)"));
-  Serial.println(F("  SS  -> D8 (GPIO15)"));
-  Serial.println(F("  MOSI-> D7 (GPIO13)"));
-  Serial.println(F("  MISO-> D6 (GPIO12)"));
-  Serial.println(F("  SCK -> D5 (GPIO14)"));
-  Serial.println();
-  
-  Serial.println(F("Bereit zum Scannen..."));
-  Serial.println(F("Halte einen NFC-Tag an den Reader"));
-  Serial.println();
-  
   // LED blinken als Ready-Signal
   blinkLED(3, 200);
 }
@@ -157,20 +125,11 @@ String getUID() {
 
 /**
  * Sendet NFC-ID über Serial an den Roboter
- * Format: NFC_ID:A1B2C3D4E5F6
+ * Format: Nur die UID (z.B. A1B2C3D4E5F6)
  */
 void sendToRobot(String uid) {
-  // Strukturierte Ausgabe für einfaches Parsing
-  Serial.print(F("NFC_ID:"));
+  // Nur die Seriennummer ausgeben
   Serial.println(uid);
-  
-  // Optional: Zusätzliche Info im Debug-Format
-  Serial.print(F("  -> Tag erkannt: "));
-  Serial.print(uid);
-  Serial.print(F(" ("));
-  Serial.print(mfrc522.uid.size);
-  Serial.println(F(" Bytes)"));
-  Serial.println();
 }
 
 /**

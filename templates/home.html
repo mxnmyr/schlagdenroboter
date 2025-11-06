@@ -240,8 +240,10 @@
 							<div class="player-info">
 								<div class="player-name">{{ entry.name }}</div>
 								<div class="player-stats">
-									<span class="stat">🏆 {{ entry.wins }}/{{ entry.total }}</span>
-									<span class="stat">📊 {{ "%.1f"|format(entry.win_rate) }}%</span>
+									<span class="stat">🎮 {{ entry.total }} Spiele</span>
+									{% if entry.avg_moves > 0 %}
+										<span class="stat">⭐ Ø {{ "%.1f"|format(entry.avg_moves) }} Züge</span>
+									{% endif %}
 								</div>
 							</div>
 						</li>
@@ -282,5 +284,31 @@
 			<a href="/admin" class="btn btn-admin">⚙️ Verwaltung</a>
 		</div>
 	</div>
+	
+	<script>
+		// Auto-refresh nur bei neuen Daten
+		let lastUpdate = null;
+		
+		async function checkForUpdates() {
+			try {
+				const response = await fetch('/api/last_update');
+				const data = await response.json();
+				
+				if (lastUpdate === null) {
+					// Beim ersten Aufruf nur speichern
+					lastUpdate = data.last_update;
+				} else if (lastUpdate !== data.last_update) {
+					// Daten haben sich geändert - Seite neu laden
+					location.reload();
+				}
+			} catch (error) {
+				console.error('Fehler beim Prüfen auf Updates:', error);
+			}
+		}
+		
+		// Alle 2 Sekunden auf Updates prüfen
+		setInterval(checkForUpdates, 2000);
+		checkForUpdates();
+	</script>
 </body>
 </html>
